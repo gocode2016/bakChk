@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>备份检查页面</title>
+    <!-- bootstrap + jquery -->
+    <script src="/static/js/jquery.min.js"></script>
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="shortcut icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="/static/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 页头 -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="page-header">
+                    <h1>管理后台<small>备份检查页面</small></h1>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任务列表 -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-primary" style="margin-top: 20px">
+                    <div class="panel-body">
+                        <table class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>备份主机</th>
+                                    <th>最近三天备份详情</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                        <div id="pagination" class="pull-right"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        window.onload = function() {
+            load_backup_list();
+        };
+        function load_backup_list() {
+            var myDate = new Date();
+            var year = myDate.getFullYear();
+            var month = myDate.getMonth()+1;
+            var day1 = myDate.getDate();
+            var day2 = day1 - 1;
+            var day3 = day1 - 2;
+            String(month).length < 2 ? (month = "0" + month): month;
+            String(day1).length < 2 ? (day1 = "0" + day1): day1;
+            String(day2).length < 2 ? (day2 = "0" + day1): day2;
+            String(day3).length < 2 ? (day3 = "0" + day1): day3;
+            var now = year+""+month+""+day1;
+            var yesterday = year+""+month+""+day2;
+            var beforeYesterday = year+""+month+""+day3;
+            var nowBackupName = now+".zip";
+            var yesterdayBackupName = yesterday + ".zip";
+            var beforeYesterdayBackupName = beforeYesterday + ".zip";
+            $.ajax({
+                url: "/index",
+                type: "post",
+                dateType: "json",
+                success: function(resp) {
+                    data = JSON.parse(resp);
+                    console.log(data);
+                    if (data.errno !== 0) {
+                        alert("加载失败，请联系管理员！");
+                        return
+                    }
+                    var backupList = data.data;
+                    var flag1 = false;
+                    var flag2 = false;
+                    var flag3 = false;
+                    var flag4 = false;
+                    for (var i = 0; i < backupList.length; i++) {
+                        var backup = backupList[i];
+                        var tr = "<tr>";
+                        tr += "<td>" + backup.ip + "</td>";
+                        tr += "<td>";
+                        if (backup.singleBackup) {
+                            flag4 = false;
+                            for(var j = 0; j < backup.singleBackup.length; j++) {
+                                if (backup.singleBackup[j]) {
+                                    backupName = backup.singleBackup[j].backupName;
+                                    date = backupName.replace(".zip", "");
+                                    if (backupName === nowBackupName) {
+                                        tr += date + ":<span style='color:green'>" + backup.singleBackup[j].backupSize + "M</span><br/>";
+                                        flag1 = true;
+                                    } else if (backupName === yesterdayBackupName) {
+                                        tr += date + ":<span style='color:green'>" + backup.singleBackup[j].backupSize + "M</span><br/>";
+                                        flag2 = true;
+                                    } else if (backupName === beforeYesterdayBackupName) {
+                                        tr += date + ":<span style='color:green'>" + backup.singleBackup[j].backupSize + "M</span><br/>";
+                                        flag3 = true;
+                                    } else if (backupName) {
+
+                                    } else {
+                                        tr += "<span style='color:red'>没有最近三天的备份</span>"
+                                    }
+                                }
+                            }
+                        } else {
+                                tr+="<span style='color:red'>无</span>";
+                                flag4 = true;
+                        }
+                        if (! flag4) {
+                            if (!flag1) {
+                                tr += "<span style='color:red'>" + nowBackupName.replace(".zip", "") + ":无</span><br/>";
+                            }
+                            if (!flag2) {
+                                tr += "<span style='color:red'>" + yesterdayBackupName.replace(".zip", "") + ":无</span><br/>";
+                            }
+                            if (!flag3) {
+                                tr += "<span style='color:red'>" + beforeYesterdayBackupName.replace(".zip", "") + ":无</span><br/>";
+                            }
+                        }
+                        tr+="</td></tr>";
+                        $("tbody").append(tr);
+                        flag1 = false;
+                        flag2 = false;
+                        flag3 = false;
+                        flag4 = false;
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
